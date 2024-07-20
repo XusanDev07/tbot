@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Product, Basket, Category
+from .models import Product, Basket, Category, Order, User
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -47,3 +47,41 @@ class CreateOrderSerializer(serializers.Serializer):
     location_address = serializers.CharField(max_length=255)
     name = serializers.CharField(max_length=100)
     comment = serializers.CharField(allow_blank=True, required=False)
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = '__all__'
+
+    def get_status(self, obj):
+        return obj.get_status_display()
+
+
+class OrderTypeSerializer(serializers.ModelSerializer):
+    status = serializers.CharField(source='get_status_display')
+
+    class Meta:
+        model = Order
+        fields = '__all__'
+
+
+class OrderStatusUpdateSerializer(serializers.ModelSerializer):
+    status = serializers.ChoiceField(choices=Order.PayStatus.choices)
+
+    class Meta:
+        model = Order
+        fields = ['status']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['status'] = instance.get_status_display()
+        return representation
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = "__all__"

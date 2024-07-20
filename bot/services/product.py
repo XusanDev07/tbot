@@ -52,15 +52,14 @@ class ProductSimilarAPIView(GenericAPIView):
 
 
 class ProductDetailAPIView(RetrieveAPIView):
-    queryset = Product.objects.all()
+    queryset = Product.objects.select_related('ctg')
     serializer_class = ProductSerializer
     lookup_field = 'pk'
 
     def get_object(self):
         obj = super().get_object()
-        request = self.request
 
-        viewed_products = request.session.get('viewed_products', [])
+        viewed_products = self.request.session.get('viewed_products', [])
         product_id = str(obj.id)
 
         if product_id not in viewed_products:
@@ -68,14 +67,14 @@ class ProductDetailAPIView(RetrieveAPIView):
             if len(viewed_products) > 5:
                 viewed_products.pop(0)
 
-        request.session['viewed_products'] = viewed_products
+        self.request.session['viewed_products'] = viewed_products
         return obj
 
 
 class LastViewedProductsView(APIView):
     def get(self, request):
         viewed_product_ids = request.session.get('viewed_products', [])
-        viewed_products = Product.objects.filter(id__in=viewed_product_ids)
+        viewed_products = Product.objects.filter(id__in=viewed_product_ids).select_related('ctg')
         serializer = ProductSerializer(viewed_products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -85,4 +84,4 @@ class ProductFilterAPIView(ListAPIView):
 
     def get_queryset(self):
         name = self.request.query_params.get('name', '').lower()
-        return Product.objects.filter(name__icontains=name)
+        return Product.objects.filter(name__icontains=name).select_related('ctg')

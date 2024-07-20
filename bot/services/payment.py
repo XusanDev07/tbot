@@ -1,11 +1,14 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from rest_framework.decorators import action
+from rest_framework.generics import ListAPIView, GenericAPIView
+from rest_framework import status as http_status, generics
 from bot.models import Basket, Order, User, OrderItem
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from bot.serializers import CreateOrderSerializer
+from bot.serializers import CreateOrderSerializer, OrderSerializer, OrderStatusUpdateSerializer, OrderTypeSerializer
 
 
 def create_order(user_id, location_address, name, comment):
@@ -68,4 +71,66 @@ class CreateOrderAPIView(APIView):
                 return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OrderListAPIView(ListAPIView):
+    queryset = Order.objects.select_related('user')
+    serializer_class = OrderSerializer
+
+
+class OrderTypeAPIView(generics.ListAPIView):
+    serializer_class = OrderSerializer
+
+    def get_queryset(self):
+        status = self.request.query_params.get('status')
+        queryset = Order.objects.select_related('user')
+        if status:
+            queryset = queryset.filter(status__iexact=status)
+        return queryset
+
+
+class OrderStatusUpdateAPIView(generics.UpdateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderStatusUpdateSerializer
+    lookup_field = 'pk'
+
+    def put(self, request, *args, **kwargs):
+        order = get_object_or_404(Order, pk=kwargs['pk'])
+        serializer = self.get_serializer(order, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class BasketRetrieveUpdateAPIView(GenericAPIView):
+    serializer_class = OrderStatusUpdateSerializer
+
+    def get_queryset(self):
+        return Order.objects.all()
+
+    def put(self, request, *args, **kwargs):
+        pk = self.kwargs.get('pk')
+        basket = get_object_or_404(self.get_queryset(), id=pk)
+
+        serializer = self.get_serializer(basket, data=request.data)
+        if serializer.is_valid():
+            new_product_number = serializer.validated_data['product_number']
+            product = basket.product
+
+            if new_product_number > product.residual + basket.product_number:
+                return Response(
+                    {
+                        "error": f"Error: Only {product.residual + basket.product_number} of {product.name} available in residual."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            residual_difference = new_product_number - basket.product_number
+            basket.product_number = new_product_number
+            basket.product_price = int(new_product_number * product.cost)
+
+            basket.save()
+            return Response({"status": "Basket updated successfully."}, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

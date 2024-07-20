@@ -99,7 +99,7 @@ async def start(update: Update, context: CallbackContext) -> None:
     keyboard = [
         [InlineKeyboardButton("Open Chat",
                               web_app=WebAppInfo(
-                                  url=f'https://0abc-93-188-83-214.ngrok-free.app/?tg_user_id={update.effective_user.id}'))]
+                                  url=f'https://botfront.tramplin.uz/?tg_user_id={update.effective_user.id}'))]
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
