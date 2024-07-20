@@ -34,8 +34,10 @@ class Product(models.Model):
 class Basket(models.Model):
     product = models.ForeignKey(Product, models.CASCADE)
     user = models.ForeignKey(User, models.CASCADE, related_name='baskets', to_field='tg_user_id')
-    product_number = models.IntegerField(default=1)
+    product_number = models.IntegerField()
     product_price = models.IntegerField(editable=False)
+
+    created = models.BooleanField(default=True)
 
     def format(self):
         return {

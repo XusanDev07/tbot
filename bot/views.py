@@ -74,6 +74,14 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text.lower() == "hello":
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Hi there! How can I help you today?")
     elif str(update.message.text) == eval(repr(MAIN_KEYBOARD[0][0])):
+        keyboard = [
+            [InlineKeyboardButton("Open Chat",
+                                  web_app=WebAppInfo(
+                                      url=f'https://botfront.tramplin.uz/?tg_user_id={update.effective_user.id}'))]
+        ]
+
+        reply_markup_ = InlineKeyboardMarkup(keyboard)
+        # await update.message.reply_text("message", reply_markup=reply_markup_)
         names = await sync_to_async(list)(Product.objects.values_list('name', flat=True))
         wrapped_names = [names[i:i + 3] for i in range(0, len(names), 3)]
         if not any(sublist == ['⬅️ Back'] for sublist in wrapped_names):
@@ -81,7 +89,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup = ReplyKeyboardMarkup(wrapped_names, resize_keyboard=True)
         await context.bot.send_message(chat_id=update.effective_chat.id,
                                        text="Welcome to the 🛍 Katalog section, select a product type",
-                                       reply_markup=reply_markup)
+                                       reply_markup=reply_markup_)
     elif update.message.text == eval(repr(MAIN_KEYBOARD[1][0])):
         names = await sync_to_async(list)(Product.objects.filter(sale=True).values_list('name', flat=True))
         wrapped_names = [names[i:i + 3] for i in range(0, len(names), 3)]

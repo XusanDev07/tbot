@@ -76,15 +76,21 @@ class BasketRetrieveUpdateAPIView(GenericAPIView):
         pk = self.kwargs.get('pk')
         basket = get_object_or_404(self.get_queryset(), id=pk)
 
-        serializer = self.get_serializer(basket, data=request.data)
+        serializer = self.get_serializer(basket, data=request.data, partial=True)
         if serializer.is_valid():
             new_product_number = serializer.validated_data['product_number']
+
+            if new_product_number == 0:
+                basket.delete()
+                return Response({"status": "Basket deleted successfully."}, status=status.HTTP_200_OK)
+
             product = basket.product
 
             if new_product_number > product.residual + basket.product_number:
                 return Response(
                     {
-                        "error": f"Error: Only {product.residual + basket.product_number} of {product.name} available in residual."},
+                        "error": f"Error: Only {product.residual + basket.product_number} of {product.name} available in residual."
+                    },
                     status=status.HTTP_400_BAD_REQUEST
                 )
 

@@ -30,6 +30,11 @@ class BasketCreateSerializer(serializers.ModelSerializer):
         model = Basket
         fields = '__all__'
 
+    def validate_product_number(self, value):
+        if value < 1:
+            raise serializers.ValidationError("Product number must be greater than or equal to 1.")
+        return value
+
 
 class UpdateBasketSerializer(serializers.ModelSerializer):
     class Meta:
@@ -37,8 +42,8 @@ class UpdateBasketSerializer(serializers.ModelSerializer):
         fields = ['product_number']
 
     def validate_product_number(self, value):
-        if value < 1:
-            raise serializers.ValidationError("Product number must be greater than 0.")
+        if value < 0:
+            raise serializers.ValidationError("Product number must be greater than or equal to 0.")
         return value
 
 
