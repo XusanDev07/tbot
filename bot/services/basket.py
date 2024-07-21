@@ -13,6 +13,43 @@ class BasketCreateAPIView(CreateAPIView):
     queryset = Basket.objects.all()
     serializer_class = BasketCreateSerializer
 
+    def perform_create(self, serializer):
+        product_id = self.request.data.get('product')
+        tg_user_id = self.request.data.get('user')
+        product_number = int(self.request.data.get('product_number', 0))
+
+        if not product_id or not tg_user_id:
+            raise ValueError("You need to provide product_id and tg_user_id")
+
+        product = Product.objects.get(id=product_id)
+        user = User.objects.get(tg_user_id=tg_user_id)
+
+        # Use filter instead of get to handle multiple entries
+        baskets = Basket.objects.filter(product=product, user=user)
+
+        if baskets.exists():
+            basket = baskets.first()
+            if int(product_number) == 0:
+                basket.delete()
+            else:
+                basket.product_number = product_number
+                basket.save()
+        else:
+            # Create a new basket if none exists
+            basket = Basket.objects.create(
+                product=product,
+                user=user,
+                product_number=product_number
+            )
+
+        return basket
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        basket = self.perform_create(serializer)
+        return Response(self.get_serializer(basket).data, status=status.HTTP_201_CREATED)
+
 
 class BasketAPIView(GenericAPIView):
     serializer_class = BasketSerializer
@@ -31,23 +68,27 @@ class BasketAPIView(GenericAPIView):
         return Response(serializer.data)
 
 
-class BasketDetailAPIView(GenericAPIView):
-    serializer_class = BasketSerializer
+class ABasket(APIView):
+    def post(self, request):
+        data = request.data
+        tg_user_id = request.query_params.get('tg_user_id')
 
-    def get_queryset(self):
-        user_id = self.request.query_params.get('tg_user_id')
-        if not user_id:
-            return Basket.objects.none()
-        return Basket.objects.filter(user__tg_user_id=user_id).select_related('product', 'product__ctg', 'user')
+        product_ids = data.get('product_ids', [])
+        existing_cart = Basket.objects.filter(user__tg_user_id=tg_user_id).first()
 
-    def get(self, request, *args, **kwargs):
-        pk = self.kwargs.get('pk')
-        user_id = self.request.query_params.get('tg_user_id')
-        if not user_id:
-            return Response({"detail": "tg_user_id is required"}, status=400)
-        basket = get_object_or_404(self.get_queryset(), id=pk)
-        serializer = self.get_serializer(basket)
-        return Response(serializer.data)
+        if existing_cart:
+            cart = existing_cart
+        else:
+            user = get_object_or_404(User, tg_user_id=tg_user_id)
+            cart = Basket.objects.create(user=user)
+            cart.save()  # Ensure the Basket is saved and has an ID
+
+        for product_id in product_ids:
+            product = get_object_or_404(Product, id=product_id)
+            cart.product.add(product)
+
+        cart.save()  # Save any changes made to the Basket
+        return Response({"cart_id": cart.id}, status=status.HTTP_201_CREATED)
 
 
 class BasketRetrieveUpdateAPIView(GenericAPIView):
@@ -57,20 +98,13 @@ class BasketRetrieveUpdateAPIView(GenericAPIView):
         user_id = self.request.query_params.get('tg_user_id')
         if not user_id:
             return Basket.objects.none()
-        return Basket.objects.filter(user__tg_user_id=user_id).select_related('product', 'user')
+        return Basket.objects.filter(user__tg_user_id=user_id).select_related('product', 'user', 'product__ctg')
 
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get('pk')
         basket = get_object_or_404(self.get_queryset(), id=pk)
-
-        data = {
-            "id": basket.id,
-            "product": basket.product.name,
-            "user": basket.user.username,
-            "product_number": basket.product_number,
-            "product_price": basket.product_price
-        }
-        return Response(data, status=status.HTTP_200_OK)
+        serializer = BasketSerializer(basket)
+        return Response(serializer.data)
 
     def put(self, request, *args, **kwargs):
         pk = self.kwargs.get('pk')
@@ -99,6 +133,6 @@ class BasketRetrieveUpdateAPIView(GenericAPIView):
             basket.product_price = int(new_product_number * product.cost)
 
             basket.save()
-            return Response({"status": "Basket updated successfully."}, status=status.HTTP_200_OK)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -25,13 +25,37 @@ class BasketSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class BasketInProductSerializer(serializers.ModelSerializer):
+    basket_number = serializers.SerializerMethodField()
+    ctg = CategorySerializer()
+
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'img', 'desc', 'new', 'cost', 'discount_price', 'residual', 'sale', 'ctg',
+                  'basket_number']
+
+    def get_basket_number(self, obj):
+        tg_user_id = self.context.get('request').query_params.get('tg_user_id')
+
+        print(f"Authenticated User ID: {tg_user_id}")  # Debugging line
+        if tg_user_id is None:
+            return 0
+
+        basket = Basket.objects.filter(product=obj, user__tg_user_id=tg_user_id).first()
+        print(f"Basket: {basket}")  # Debugging line
+
+        if basket:
+            return basket.product_number
+        return 0
+
+
 class BasketCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Basket
         fields = '__all__'
 
     def validate_product_number(self, value):
-        if value < 1:
+        if value < 0:
             raise serializers.ValidationError("Product number must be greater than or equal to 1.")
         return value
 

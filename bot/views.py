@@ -77,7 +77,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton("Open Chat",
                                   web_app=WebAppInfo(
-                                      url=f'https://botfront.tramplin.uz/?tg_user_id={update.effective_user.id}'))]
+                                      url=f'https://3b56-84-54-94-119.ngrok-free.app/?tg_user_id={update.effective_user.id}'))]
         ]
 
         reply_markup_ = InlineKeyboardMarkup(keyboard)

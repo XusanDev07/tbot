@@ -47,7 +47,12 @@ class Basket(models.Model):
         }
 
     def save(self, *args, **kwargs):
+        if self.product_number < 0:
+            raise ValidationError("Product number must be greater than or equal to 0.")
         if self.product_number > self.product.residual:
             raise ValidationError(f"Error: Only {self.product.residual} of {self.product.name} available in stock.")
-        self.product_price = int(self.product_number * self.product.cost)
-        super().save(*args, **kwargs)
+        if self.product_number == 0:
+            self.delete()
+        else:
+            self.product_price = int(self.product_number * (self.product.cost or self.discount_price))
+            super().save(*args, **kwargs)

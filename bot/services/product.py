@@ -7,28 +7,43 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from bot.models import Product, Basket
-from bot.serializers import ProductSerializer, BasketSerializer
+from bot.serializers import ProductSerializer, BasketSerializer, BasketInProductSerializer
 
 
 class ProductAPIView(ListAPIView):
-    serializer_class = ProductSerializer
+    serializer_class = BasketInProductSerializer
 
     def get_queryset(self):
-        return Product.objects.filter(sale=False).select_related('ctg')
+        return Product.objects.select_related('ctg').all()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 class ProductNewAPIView(ListAPIView):
-    serializer_class = ProductSerializer
+    serializer_class = BasketInProductSerializer
 
     def get_queryset(self):
-        return Product.objects.filter(new=True).select_related('ctg')
+        return Product.objects.filter(new=True).select_related('ctg').all()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 class DiscountProductAPIView(ListAPIView):
-    serializer_class = ProductSerializer
+    serializer_class = BasketInProductSerializer
 
     def get_queryset(self):
-        return Product.objects.filter(sale=True).select_related('ctg')
+        return Product.objects.filter(sale=True).select_related('ctg').all()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 class ProductListAPIView(ListAPIView):
@@ -84,4 +99,6 @@ class ProductFilterAPIView(ListAPIView):
 
     def get_queryset(self):
         name = self.request.query_params.get('name', '').lower()
+        if not name:
+            return list()
         return Product.objects.filter(name__icontains=name).select_related('ctg')
