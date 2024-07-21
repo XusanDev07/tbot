@@ -95,7 +95,7 @@ class LastViewedProductsView(APIView):
 
 
 class ProductFilterAPIView(ListAPIView):
-    serializer_class = ProductSerializer
+    serializer_class = BasketInProductSerializer
 
     def get_queryset(self):
         name = self.request.query_params.get('name', '').lower()
