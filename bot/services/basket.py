@@ -35,7 +35,6 @@ class BasketCreateAPIView(CreateAPIView):
                 basket.product_number = product_number
                 basket.save()
         else:
-            # Create a new basket if none exists
             basket = Basket.objects.create(
                 product=product,
                 user=user,

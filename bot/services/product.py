@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 # from rest_framework.exceptions import NotFound
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, GenericAPIView
@@ -6,8 +7,10 @@ from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView,
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from bot.models import Product, Basket
-from bot.serializers import ProductSerializer, BasketSerializer, BasketInProductSerializer
+from bot.models import Product, Basket, User
+from bot.models.core import LastViewedProduct
+from bot.serializers import ProductSerializer, BasketSerializer, BasketInProductSerializer, LastProductSerializer, \
+    BasketInProductFilterSerializer
 
 
 class ProductAPIView(ListAPIView):
@@ -69,36 +72,51 @@ class ProductSimilarAPIView(GenericAPIView):
 class ProductDetailAPIView(RetrieveAPIView):
     queryset = Product.objects.select_related('ctg')
     serializer_class = ProductSerializer
-    lookup_field = 'pk'
 
-    def get_object(self):
-        obj = super().get_object()
+    def get(self, request, *args, **kwargs):
+        product = self.get_object()
+        tg_user_id = kwargs.get('tg_user_id')
+        # print(tg_user_id)
 
-        viewed_products = self.request.session.get('viewed_products', [])
-        product_id = str(obj.id)
+        if tg_user_id:
+            try:
 
-        if product_id not in viewed_products:
-            viewed_products.append(product_id)
-            if len(viewed_products) > 5:
-                viewed_products.pop(0)
+                last_viewed_product, created = LastViewedProduct.objects.get_or_create(
+                    product=product, user__tg_user_id=tg_user_id,
+                    defaults={'viewed_at': timezone.now()}
+                )
+            except User.DoesNotExist:
+                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        self.request.session['viewed_products'] = viewed_products
-        return obj
-
-
-class LastViewedProductsView(APIView):
-    def get(self, request):
-        viewed_product_ids = request.session.get('viewed_products', [])
-        viewed_products = Product.objects.filter(id__in=viewed_product_ids).select_related('ctg')
-        serializer = ProductSerializer(viewed_products, many=True)
+        serializer = self.get_serializer(product)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class LastViewedProductsView(ListAPIView):
+    serializer_class = LastProductSerializer
+    queryset = LastViewedProduct.objects.select_related('user', 'product')
+
+    def get(self, request, *args, **kwargs):
+        tg_user_id = kwargs.get('tg_user_id')
+        last_viewed_products = LastViewedProduct.objects.filter(user__tg_user_id=tg_user_id)
+        serializer = self.get_serializer(last_viewed_products, many=True)
+        return Response(serializer.data)
+
+
 class ProductFilterAPIView(ListAPIView):
-    serializer_class = BasketInProductSerializer
+    serializer_class = BasketInProductFilterSerializer
 
     def get_queryset(self):
         name = self.request.query_params.get('name', '').lower()
+
         if not name:
-            return list()
+            return Product.objects.none()
+
         return Product.objects.filter(name__icontains=name).select_related('ctg')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({
+            'tg_user_id': self.kwargs.get('tg_user_id'),
+        })
+        return context

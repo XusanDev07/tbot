@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Product, Basket, Category, Order, User
+from .models import Product, Basket, Category, Order, User, LastViewedProduct
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -14,7 +14,16 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ('id', "name", 'img', 'desc', 'new', 'cost', 'discount_price', 'residual', 'sale', 'ctg')
+        fields = (
+            'id', "name", "discount_percent", 'img', 'desc', 'new', 'cost', 'discount_price', 'residual', 'sale', 'ctg')
+
+
+class LastProductSerializer(serializers.ModelSerializer):
+    product = ProductSerializer(read_only=True)
+
+    class Meta:
+        model = LastViewedProduct
+        fields = ['id', 'product']
 
 
 class BasketSerializer(serializers.ModelSerializer):
@@ -31,7 +40,8 @@ class BasketInProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'img', 'desc', 'new', 'cost', 'discount_price', 'residual', 'sale', 'ctg',
+        fields = ['id', 'name', "discount_percent", 'img', 'desc', 'new', 'cost', 'discount_price', 'residual', 'sale',
+                  'ctg',
                   'basket_number']
 
     def get_basket_number(self, obj):
@@ -43,6 +53,29 @@ class BasketInProductSerializer(serializers.ModelSerializer):
 
         basket = Basket.objects.filter(product=obj, user__tg_user_id=tg_user_id).first()
         print(f"Basket: {basket}")  # Debugging line
+
+        if basket:
+            return basket.product_number
+        return 0
+
+
+class BasketInProductFilterSerializer(serializers.ModelSerializer):
+    basket_number = serializers.SerializerMethodField()
+    ctg = CategorySerializer()
+
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'discount_percent', 'img', 'desc', 'new', 'cost', 'discount_price', 'residual',
+                  'sale', 'ctg', 'basket_number']
+
+    def get_basket_number(self, obj):
+        request = self.context.get('request')
+        tg_user_id = self.context.get('tg_user_id')
+
+        if tg_user_id is None:
+            return 0
+
+        basket = Basket.objects.filter(product=obj, user__tg_user_id=tg_user_id).first()
 
         if basket:
             return basket.product_number

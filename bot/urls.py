@@ -16,14 +16,13 @@ urlpatterns = [
 
     # path('ajal_api/', ProductInBasketAPIView.as_view()),
 
-    path('product/<int:pk>/', ProductDetailAPIView.as_view()),
+    path('product/<int:pk>/<int:tg_user_id>/', ProductDetailAPIView.as_view()),
     path('discount_product/', DiscountProductAPIView.as_view()),
     path('product_similar/<int:ctg_id>/', ProductSimilarAPIView.as_view()),
-    path('l_v_product/', LastViewedProductsView.as_view(), name='last_viewed_products'),
-    # path('bbbbb/', add_basket, name='last_viewed_products'),
-    path('search/product/', ProductFilterAPIView.as_view(), name='search_product'),
+    path('l_v_product/<int:tg_user_id>/', LastViewedProductsView.as_view(), name='last_viewed_products'),
+    path('search/product/<int:tg_user_id>/', ProductFilterAPIView.as_view(), name='search_product'),
 
-    path('api/create_order/', CreateOrderAPIView.as_view(), name='create_order'),
+    path('create_order/', CreateOrderAPIView.as_view(), name='create_order'),
     path('admin_order_list/', OrderListAPIView.as_view(), name='order_list'),
     path('order_type/', OrderTypeAPIView.as_view(), name='order_type'),
     path('update_order_status/<int:pk>/', OrderStatusUpdateAPIView.as_view(), name='update-order-status'),

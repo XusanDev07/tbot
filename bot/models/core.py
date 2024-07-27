@@ -17,9 +17,9 @@ class Product(models.Model):
 
     new = models.BooleanField(default=True)
     cost = models.IntegerField()  # FloatField()
-    discount_price = models.IntegerField()  # FloatField()
+    discount_price = models.IntegerField(null=True, blank=True)  # FloatField()
     residual = models.SmallIntegerField()  # bu product qoldig'i
-
+    discount_percent = models.IntegerField(editable=False, default=0)
     ctg = models.ForeignKey(Category, models.SET_NULL, null=True, blank=True)
 
     sale = models.BooleanField(default=False)
@@ -29,6 +29,12 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.discount_price:
+            self.discount_price = self.cost
+        self.discount_percent = int(((int(self.cost) - int(self.discount_price)) / int(self.cost)) * 100)
+        return super(Product, self).save(*args, **kwargs)
 
 
 class Basket(models.Model):
@@ -56,3 +62,13 @@ class Basket(models.Model):
         else:
             self.product_price = int(self.product_number * (self.product.cost or self.discount_price))
             super().save(*args, **kwargs)
+
+
+class LastViewedProduct(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    viewed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'product')
+        ordering = ['-viewed_at']
