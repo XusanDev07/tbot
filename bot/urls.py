@@ -5,7 +5,7 @@ from bot.services import index
 from bot.services.basket import BasketAPIView, BasketCreateAPIView, \
     BasketRetrieveUpdateAPIView, ABasket, DeleteUserBasketsAPIView
 from bot.services.payment import CreateOrderAPIView, OrderListAPIView, OrderTypeAPIView, OrderStatusUpdateAPIView, \
-    OrderDetailAPIView, OrderFilterUserAPIView
+    OrderDetailAPIView, OrderFilterUserAPIView, UserOrdersAPIView, PreOrderAPIView
 from bot.services.product import ProductAPIView, ProductListAPIView, ProductDetailAPIView, LastViewedProductsView, \
     DiscountProductAPIView, ProductSimilarAPIView, ProductFilterAPIView, ProductNewAPIView
 from bot.services.profile import ProfileAPIView
@@ -39,4 +39,9 @@ urlpatterns = [
     # path('get_basket/<int:pk>/', BasketDetailAPIView.as_view(), name='get_basket_detail'),
     path('add_basket/', BasketCreateAPIView.as_view(), name='basket'),
 
+]
+
+urlpatterns += [
+    path('order_item/<int:tg_user_id>/', UserOrdersAPIView.as_view(), name='user-orders'),
+    path('pre_order/<int:tg_user_id>/', PreOrderAPIView.as_view(), name='user-pre-orders'),
 ]

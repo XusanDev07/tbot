@@ -8,10 +8,12 @@ from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from bot.serializers import CreateOrderSerializer, OrderSerializer, OrderStatusUpdateSerializer, OrderTypeSerializer
+from bot.serializers import CreateOrderSerializer, OrderSerializer, OrderStatusUpdateSerializer, OrderTypeSerializer, \
+    OrderShowSerializer
 
 
-def create_order(user_id, location_address, delivery_type, comment, total_price_of_products):
+def create_order(user_id, location_address, delivery_type, comment, total_price_of_products, is_pre_order=False,
+                 pre_order_availability_date=None):
     user = get_object_or_404(User, tg_user_id=user_id)
     baskets = Basket.objects.filter(user=user)
 
@@ -26,7 +28,9 @@ def create_order(user_id, location_address, delivery_type, comment, total_price_
             comment=comment,
             total_amount_for_payment=0.00,
             total_price_of_products=total_price_of_products,
-            status='Yangi'
+            status='Yangi',
+            is_pre_order=is_pre_order,
+            pre_order_availability_date=pre_order_availability_date
         )
 
         for basket in baskets:
@@ -35,8 +39,9 @@ def create_order(user_id, location_address, delivery_type, comment, total_price_
                 raise ValueError(
                     f"Not enough residual for {product.name}. Available: {product.residual}, Requested: {basket.product_number}")
 
-            product.residual -= basket.product_number
-            product.save()
+            if not is_pre_order:
+                product.residual -= basket.product_number
+                product.save()
 
             order_item = OrderItem.objects.create(
                 order=order,
@@ -44,9 +49,8 @@ def create_order(user_id, location_address, delivery_type, comment, total_price_
                 quantity=basket.product_number,
                 price=basket.product_price
             )
-            # order.total_price_of_products += order_item.price
 
-        order.total_amount_for_payment = order.total_price_of_products
+        order.total_amount_for_payment += order_item.price
         order.save()
 
         baskets.delete()
@@ -63,9 +67,14 @@ class CreateOrderAPIView(APIView):
             delivery_type = serializer.validated_data['delivery_type']
             comment = serializer.validated_data.get('comment', '')
             total_price_of_products = serializer.validated_data['total_price_of_products']
+            is_pre_order = serializer.validated_data.get('is_pre_order', False)
+            pre_order_availability_date = serializer.validated_data.get('pre_order_availability_date', None)
 
             try:
-                order = create_order(tg_user_id, location_address, delivery_type, comment, total_price_of_products)
+                order = create_order(
+                    tg_user_id, location_address, delivery_type, comment, total_price_of_products,
+                    is_pre_order=is_pre_order, pre_order_availability_date=pre_order_availability_date
+                )
                 return Response({"order_id": order.pk, "status": "Order created successfully."},
                                 status=status.HTTP_201_CREATED)
             except ValueError as ve:
@@ -84,12 +93,14 @@ class OrderTypeAPIView(generics.ListAPIView):
     serializer_class = OrderSerializer
 
     def get_queryset(self):
-        status = self.request.query_params.get('status')
+        status = self.request.query_params.get('status').title()
         queryset = Order.objects.select_related('user')
         if status:
             queryset = queryset.filter(status__iexact=status)
         return queryset
 
+
+# http://127.0.0.1:8000/order_type/?status=Yangi shunaqa url berilishi kerak bu admin uchun
 
 class OrderDetailAPIView(RetrieveAPIView):
     queryset = Order.objects.select_related('user')
@@ -149,3 +160,22 @@ class BasketRetrieveUpdateAPIView(GenericAPIView):
             return Response({"status": "Basket updated successfully."}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserOrdersAPIView(ListAPIView):
+    serializer_class = OrderShowSerializer
+
+    def get_queryset(self):
+        user = self.kwargs.get('tg_user_id')
+        status = self.request.query_params.get('status').title()
+        if not status:
+            return Order.objects.filter(user__tg_user_id=user).prefetch_related('items')
+        return Order.objects.filter(user__tg_user_id=user, status=status).prefetch_related('items')
+
+
+class PreOrderAPIView(ListAPIView):
+    serializer_class = OrderShowSerializer
+
+    def get_queryset(self):
+        user = self.kwargs.get('tg_user_id')
+        return Order.objects.filter(user__tg_user_id=user).prefetch_related('items')

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Product, Basket, Category, Order, User, LastViewedProduct
+from .models import Product, Basket, Category, Order, User, LastViewedProduct, OrderItem
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -110,6 +110,8 @@ class CreateOrderSerializer(serializers.Serializer):
     comment = serializers.CharField(allow_blank=True, required=False)
     delivery_type = serializers.BooleanField(default=True)
     total_price_of_products = serializers.IntegerField()
+    is_pre_order = serializers.BooleanField(default=False)
+    pre_order_availability_date = serializers.DateField(required=False, allow_null=True)
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -145,3 +147,26 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = "__all__"
+
+
+class ProductSerializera(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = (
+            'id', "name", "discount_percent", 'img', 'desc', 'new', 'cost', 'discount_price', 'residual', 'sale', 'ctg')
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    product = ProductSerializera()
+
+    class Meta:
+        model = OrderItem
+        fields = ['product', 'quantity', 'price']
+
+
+class OrderShowSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ['items', 'status']
