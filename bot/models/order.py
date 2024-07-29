@@ -5,14 +5,14 @@ from bot.models.core import Product
 
 
 class Order(models.Model):
-    class PayStatus(models.IntegerChoices):
-        Yangi = 1, "Yangi"
-        Qabul_qilingan = 2, "Qabul_qilingan"
-        Tayyor = 3, "Tayyor"
-        Yigilgan = 4, "Yigilgan"
-        Yetkazilmoqda = 5, "Yetkazilmoqda"
-        Yetkazilgan = 6, "Yetkazilgan"
-        Bekor_qilingan = 7, "Bekor_qilingan"
+    class PayStatus(models.TextChoices):
+        Yangi = "Yangi",
+        Qabul_qilingan = "Qabul_qilingan",
+        Tayyor = "Tayyor",
+        Yigilgan = "Yigilgan",
+        Yetkazilmoqda = "Yetkazilmoqda",
+        Yetkazilgan = "Yetkazilgan",
+        Bekor_qilingan = "Bekor qilingan",
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     location_address = models.CharField(max_length=255)

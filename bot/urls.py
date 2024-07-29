@@ -3,8 +3,9 @@ from rest_framework.routers import DefaultRouter
 
 from bot.services import index
 from bot.services.basket import BasketAPIView, BasketCreateAPIView, \
-    BasketRetrieveUpdateAPIView, ABasket
-from bot.services.payment import CreateOrderAPIView, OrderListAPIView, OrderTypeAPIView, OrderStatusUpdateAPIView
+    BasketRetrieveUpdateAPIView, ABasket, DeleteUserBasketsAPIView
+from bot.services.payment import CreateOrderAPIView, OrderListAPIView, OrderTypeAPIView, OrderStatusUpdateAPIView, \
+    OrderDetailAPIView, OrderFilterUserAPIView
 from bot.services.product import ProductAPIView, ProductListAPIView, ProductDetailAPIView, LastViewedProductsView, \
     DiscountProductAPIView, ProductSimilarAPIView, ProductFilterAPIView, ProductNewAPIView
 from bot.services.profile import ProfileAPIView
@@ -25,11 +26,14 @@ urlpatterns = [
     path('create_order/', CreateOrderAPIView.as_view(), name='create_order'),
     path('admin_order_list/', OrderListAPIView.as_view(), name='order_list'),
     path('order_type/', OrderTypeAPIView.as_view(), name='order_type'),
-    path('update_order_status/<int:pk>/', OrderStatusUpdateAPIView.as_view(), name='update-order-status'),
+    path('orders/<int:order_id>/', OrderStatusUpdateAPIView.as_view(), name='order-status-update'),
+    path('order_detail/<int:pk>/', OrderDetailAPIView.as_view(), name='order-status-update'),
+    path('order_user/<int:tg_user_id>/', OrderFilterUserAPIView.as_view(), name='order-status-update'),
 
     path('profile/<int:tg_user_id>/', ProfileAPIView.as_view(), name='profile'),
 
     path('get_basket/', BasketAPIView.as_view(), name='get_basket'),
+    path('delete_basket/<int:tg_user_id>/', DeleteUserBasketsAPIView.as_view(), name='delete-user-baskets'),
     path('al/', ABasket.as_view(), name='get_basket'),
     path('_basket/<int:pk>/', BasketRetrieveUpdateAPIView.as_view(), name='update_basket'),
     # path('get_basket/<int:pk>/', BasketDetailAPIView.as_view(), name='get_basket_detail'),

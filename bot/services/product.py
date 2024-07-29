@@ -76,13 +76,12 @@ class ProductDetailAPIView(RetrieveAPIView):
     def get(self, request, *args, **kwargs):
         product = self.get_object()
         tg_user_id = kwargs.get('tg_user_id')
-        # print(tg_user_id)
 
         if tg_user_id:
             try:
-
+                user = User.objects.get(tg_user_id=tg_user_id)
                 last_viewed_product, created = LastViewedProduct.objects.get_or_create(
-                    product=product, user__tg_user_id=tg_user_id,
+                    product=product, user=user,
                     defaults={'viewed_at': timezone.now()}
                 )
             except User.DoesNotExist:

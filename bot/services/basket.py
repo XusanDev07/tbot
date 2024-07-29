@@ -50,6 +50,23 @@ class BasketCreateAPIView(CreateAPIView):
         return Response(self.get_serializer(basket).data, status=status.HTTP_201_CREATED)
 
 
+class DeleteUserBasketsAPIView(APIView):
+
+    def delete(self, request, *args, **kwargs):
+        tg_user_id = kwargs.get('tg_user_id')
+
+        if not tg_user_id:
+            return Response({'error': 'Telegram user ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(tg_user_id=tg_user_id)
+            Basket.objects.filter(user=user).delete()
+            return Response({'message': 'All basket items for the user deleted successfully'},
+                            status=status.HTTP_204_NO_CONTENT)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
 class BasketAPIView(GenericAPIView):
     serializer_class = BasketSerializer
 

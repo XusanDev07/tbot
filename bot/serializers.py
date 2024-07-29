@@ -131,17 +131,14 @@ class OrderTypeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class OrderStatusUpdateSerializer(serializers.ModelSerializer):
+class OrderStatusUpdateSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=Order.PayStatus.choices)
 
-    class Meta:
-        model = Order
-        fields = ['status']
-
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation['status'] = instance.get_status_display()
-        return representation
+    def update(self, instance, validated_data):
+        # Update the status of the order instance
+        instance.status = validated_data.get('status', instance.status)
+        instance.save()
+        return instance
 
 
 class UserSerializer(serializers.ModelSerializer):

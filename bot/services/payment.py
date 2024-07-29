@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
-from rest_framework.generics import ListAPIView, GenericAPIView
+from rest_framework.generics import ListAPIView, GenericAPIView, RetrieveAPIView
 from rest_framework import status as http_status, generics
 from bot.models import Basket, Order, User, OrderItem
 from rest_framework import status, viewsets
@@ -91,14 +91,28 @@ class OrderTypeAPIView(generics.ListAPIView):
         return queryset
 
 
-class OrderStatusUpdateAPIView(generics.UpdateAPIView):
-    queryset = Order.objects.all()
-    serializer_class = OrderStatusUpdateSerializer
-    lookup_field = 'pk'
+class OrderDetailAPIView(RetrieveAPIView):
+    queryset = Order.objects.select_related('user')
+    serializer_class = OrderSerializer
 
-    def put(self, request, *args, **kwargs):
-        order = get_object_or_404(Order, pk=kwargs['pk'])
-        serializer = self.get_serializer(order, data=request.data, partial=True)
+
+class OrderFilterUserAPIView(ListAPIView):
+    serializer_class = OrderSerializer
+
+    def get_queryset(self):
+        tg_user_id = self.kwargs.get('tg_user_id')
+        return Order.objects.filter(user__tg_user_id=tg_user_id)
+
+
+class OrderStatusUpdateAPIView(APIView):
+    def patch(self, request, order_id):
+        try:
+            order = Order.objects.get(pk=order_id)
+        except Order.DoesNotExist:
+            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = OrderStatusUpdateSerializer(order, data=request.data, partial=True)
+
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
