@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from bot.serializers import CreateOrderSerializer, OrderSerializer, OrderStatusUpdateSerializer, OrderTypeSerializer
 
 
-def create_order(user_id, location_address, comment, delivery_type):
+def create_order(user_id, location_address, delivery_type, comment, total_price_of_products):
     user = get_object_or_404(User, tg_user_id=user_id)
     baskets = Basket.objects.filter(user=user)
 
@@ -24,9 +24,9 @@ def create_order(user_id, location_address, comment, delivery_type):
             location_address=location_address,
             delivery_type=delivery_type,
             comment=comment,
-            total_amount_for_payment=0,  # Amount in cents
-            total_price_of_products=0,  # Amount in cents
-            status='Pending'
+            total_amount_for_payment=0.00,
+            total_price_of_products=total_price_of_products,
+            status='Yangi'
         )
 
         for basket in baskets:
@@ -38,23 +38,15 @@ def create_order(user_id, location_address, comment, delivery_type):
             product.residual -= basket.product_number
             product.save()
 
-            # Calculate price in cents
-            price_in_cents = int(basket.product_price * 100)
             order_item = OrderItem.objects.create(
                 order=order,
                 product=product,
                 quantity=basket.product_number,
-                price=price_in_cents
+                price=basket.product_price
             )
-            order.total_price_of_products += order_item.price
+            # order.total_price_of_products += order_item.price
 
-        # Save the order first to apply delivery fee logic
-        order.save()
-
-        # Calculate the total amount for payment after saving
-        order.refresh_from_db()
-        delivery_fee = 5000 if order.delivery_type == 'region' else 2000 if order.delivery_type == 'city' else 0
-        order.total_amount_for_payment = order.total_price_of_products + delivery_fee
+        order.total_amount_for_payment = order.total_price_of_products
         order.save()
 
         baskets.delete()
@@ -70,9 +62,10 @@ class CreateOrderAPIView(APIView):
             location_address = serializer.validated_data['location_address']
             delivery_type = serializer.validated_data['delivery_type']
             comment = serializer.validated_data.get('comment', '')
+            total_price_of_products = serializer.validated_data['total_price_of_products']
 
             try:
-                order = create_order(tg_user_id, location_address, delivery_type, comment)
+                order = create_order(tg_user_id, location_address, delivery_type, comment, total_price_of_products)
                 return Response({"order_id": order.pk, "status": "Order created successfully."},
                                 status=status.HTTP_201_CREATED)
             except ValueError as ve:

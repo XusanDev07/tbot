@@ -105,10 +105,11 @@ class UpdateBasketSerializer(serializers.ModelSerializer):
 
 
 class CreateOrderSerializer(serializers.Serializer):
-    tg_user_id = serializers.CharField(max_length=255)
+    tg_user_id = serializers.IntegerField()
     location_address = serializers.CharField(max_length=255)
     comment = serializers.CharField(allow_blank=True, required=False)
-    delivery_type = serializers.CharField(max_length=30, default='city')
+    delivery_type = serializers.BooleanField(default=True)
+    total_price_of_products = serializers.IntegerField()
 
 
 class OrderSerializer(serializers.ModelSerializer):
