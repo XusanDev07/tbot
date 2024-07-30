@@ -3,12 +3,13 @@ from rest_framework.routers import DefaultRouter
 
 from bot.services import index
 from bot.services.basket import BasketAPIView, BasketCreateAPIView, \
-    BasketRetrieveUpdateAPIView, ABasket, DeleteUserBasketsAPIView
+    BasketRetrieveUpdateAPIView, ABasket, DeleteUserBasketsAPIView, BasketCountAPIView
 from bot.services.payment import CreateOrderAPIView, OrderListAPIView, OrderTypeAPIView, OrderStatusUpdateAPIView, \
     OrderDetailAPIView, OrderFilterUserAPIView, UserOrdersAPIView, PreOrderAPIView
 from bot.services.product import ProductAPIView, ProductListAPIView, ProductDetailAPIView, LastViewedProductsView, \
     DiscountProductAPIView, ProductSimilarAPIView, ProductFilterAPIView, ProductNewAPIView
 from bot.services.profile import ProfileAPIView
+from bot.services.test import GetProOrderAPIView
 
 urlpatterns = [
     path('product/', ProductAPIView.as_view()),
@@ -44,4 +45,6 @@ urlpatterns = [
 urlpatterns += [
     path('order_item/<int:tg_user_id>/', UserOrdersAPIView.as_view(), name='user-orders'),
     path('pre_order/<int:tg_user_id>/', PreOrderAPIView.as_view(), name='user-pre-orders'),
+    path('basket-count/<int:tg_user_id>/', BasketCountAPIView.as_view(), name='user-pre-orders'),
+    path('test/<int:tg_user_id>/', GetProOrderAPIView.as_view(), name='user-pre-orders'),
 ]

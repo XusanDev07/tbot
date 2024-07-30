@@ -29,7 +29,7 @@ class ProductNewAPIView(ListAPIView):
     serializer_class = BasketInProductSerializer
 
     def get_queryset(self):
-        return Product.objects.filter(new=True).select_related('ctg').all()
+        return Product.objects.filter(new=True, sale=False).select_related('ctg').all()
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

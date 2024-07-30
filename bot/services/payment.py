@@ -75,8 +75,10 @@ class CreateOrderAPIView(APIView):
                     tg_user_id, location_address, delivery_type, comment, total_price_of_products,
                     is_pre_order=is_pre_order, pre_order_availability_date=pre_order_availability_date
                 )
-                return Response({"order_id": order.pk, "status": "Order created successfully."},
-                                status=status.HTTP_201_CREATED)
+                return Response(
+                    {"order_id": order.pk, "user_name": order.user.username, 'user_phone': order.user.phone_number,
+                     'location': order.location_address, 'delivery_type': order.delivery_type},
+                    status=status.HTTP_201_CREATED)
             except ValueError as ve:
                 return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:
@@ -178,4 +180,5 @@ class PreOrderAPIView(ListAPIView):
 
     def get_queryset(self):
         user = self.kwargs.get('tg_user_id')
-        return Order.objects.filter(user__tg_user_id=user).prefetch_related('items')
+        return OrderItem.objects.filter(order__user__tg_user_id=user, order__delivery_type=True).prefetch_related(
+            'items')

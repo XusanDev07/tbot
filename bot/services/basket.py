@@ -50,6 +50,12 @@ class BasketCreateAPIView(CreateAPIView):
         return Response(self.get_serializer(basket).data, status=status.HTTP_201_CREATED)
 
 
+class BasketCountAPIView(APIView):
+    def get(self, request, tg_user_id):
+        basket_count = Basket.objects.filter(user__tg_user_id=tg_user_id).count()
+        return Response({"count": basket_count})
+
+
 class DeleteUserBasketsAPIView(APIView):
 
     def delete(self, request, *args, **kwargs):
