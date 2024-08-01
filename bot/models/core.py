@@ -60,7 +60,7 @@ class Basket(models.Model):
         if self.product_number == 0:
             self.delete()
         else:
-            self.product_price = int(self.product_number * (self.product.cost or self.discount_price))
+            self.product_price = int(self.product_number * self.product.discount_price)
             super().save(*args, **kwargs)
 
 

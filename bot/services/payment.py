@@ -39,9 +39,9 @@ def create_order(user_id, location_address, delivery_type, comment, total_price_
                 raise ValueError(
                     f"Not enough residual for {product.name}. Available: {product.residual}, Requested: {basket.product_number}")
 
-            if not is_pre_order:
-                product.residual -= basket.product_number
-                product.save()
+            # if not is_pre_order:
+            #     product.residual -= basket.product_number
+            #     product.save()
 
             order_item = OrderItem.objects.create(
                 order=order,
@@ -164,15 +164,12 @@ class BasketRetrieveUpdateAPIView(GenericAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserOrdersAPIView(ListAPIView):
+class UserOrdersAPIView(RetrieveAPIView):
     serializer_class = OrderShowSerializer
 
     def get_queryset(self):
         user = self.kwargs.get('tg_user_id')
-        status = self.request.query_params.get('status').title()
-        if not status:
-            return Order.objects.filter(user__tg_user_id=user).prefetch_related('items')
-        return Order.objects.filter(user__tg_user_id=user, status=status).prefetch_related('items')
+        return Order.objects.filter(user__tg_user_id=user).prefetch_related('items').first()
 
 
 class PreOrderAPIView(ListAPIView):
@@ -180,5 +177,4 @@ class PreOrderAPIView(ListAPIView):
 
     def get_queryset(self):
         user = self.kwargs.get('tg_user_id')
-        return OrderItem.objects.filter(order__user__tg_user_id=user, order__delivery_type=True).prefetch_related(
-            'items')
+        return OrderItem.objects.filter(order__user__tg_user_id=user, order__delivery_type=True)

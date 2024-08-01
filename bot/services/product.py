@@ -13,11 +13,19 @@ from bot.serializers import ProductSerializer, BasketSerializer, BasketInProduct
     BasketInProductFilterSerializer
 
 
+class ProductCreateAPIView(CreateAPIView):
+    queryset = Product.objects.select_related('ctg')
+    serializer_class = ProductSerializer
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+
 class ProductAPIView(ListAPIView):
     serializer_class = BasketInProductSerializer
 
     def get_queryset(self):
-        return Product.objects.select_related('ctg').all()
+        return Product.objects.select_related('ctg')
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -49,19 +57,19 @@ class DiscountProductAPIView(ListAPIView):
         return context
 
 
-class ProductListAPIView(ListAPIView):
-    queryset = Product.objects.select_related('ctg')
-    serializer_class = ProductSerializer
-
-
 class ProductSimilarAPIView(GenericAPIView):
-    serializer_class = ProductSerializer
+    serializer_class = BasketInProductSerializer
 
     def get_queryset(self):
         ctg = self.kwargs.get('ctg_id')
         if ctg is None:
             return Product.objects.none()
         return Product.objects.filter(ctg_id=ctg).select_related('ctg')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -71,11 +79,11 @@ class ProductSimilarAPIView(GenericAPIView):
 
 class ProductDetailAPIView(RetrieveAPIView):
     queryset = Product.objects.select_related('ctg')
-    serializer_class = ProductSerializer
+    serializer_class = BasketInProductSerializer
 
     def get(self, request, *args, **kwargs):
         product = self.get_object()
-        tg_user_id = kwargs.get('tg_user_id')
+        tg_user_id = self.request.query_params.get('tg_user_id')
 
         if tg_user_id:
             try:
@@ -90,13 +98,18 @@ class ProductDetailAPIView(RetrieveAPIView):
         serializer = self.get_serializer(product)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
 
 class LastViewedProductsView(ListAPIView):
     serializer_class = LastProductSerializer
     queryset = LastViewedProduct.objects.select_related('user', 'product')
 
     def get(self, request, *args, **kwargs):
-        tg_user_id = kwargs.get('tg_user_id')
+        tg_user_id = self.request.query_params.get('tg_user_id')
         last_viewed_products = LastViewedProduct.objects.filter(user__tg_user_id=tg_user_id)
         serializer = self.get_serializer(last_viewed_products, many=True)
         return Response(serializer.data)
