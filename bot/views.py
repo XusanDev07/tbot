@@ -244,8 +244,7 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=f"Thanks for sharing your phone number: {phone_number}"
     )
 
-    reply_markup = ReplyKeyboardMarkup(MAIN_KEYBOARD, web_app=WebAppInfo(
-        url=f'http://192.168.100.5:5173/?tg_user_id={update.effective_user.id}'), resize_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(MAIN_KEYBOARD, resize_keyboard=True)
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
